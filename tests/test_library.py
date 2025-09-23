@@ -93,106 +93,83 @@ class TestLibrary(unittest.TestCase):
         self.lib.api.get_book_info.assert_called_once_with(tst_value_book)
         self.assertSetEqual(actual, expected)
     
+    @patch('library.patron.Patron', new=lambda:"")
     def test_register_patron(self):
         tst_value_fname = "fname"
         tst_value_lname = "lname"
         tst_value_age = "age"
         tst_value_memberID = "memberID"
-        patron_instance = patron.Patron(tst_value_fname, tst_value_lname, tst_value_age, tst_value_memberID)
         self.lib.db.insert_patron = Mock(return_value=tst_value_memberID)
         
         actual = self.lib.register_patron(tst_value_fname, tst_value_lname, tst_value_age, tst_value_memberID)
         expected = tst_value_memberID
         
-        self.lib.db.insert_patron.assert_called_once_with(patron_instance)
+        self.lib.db.insert_patron.assert_called_once()
         self.assertEqual(actual, expected)
         
-    def test_is_patron_registered_true(self):
-        tst_value_fname = "fname"
-        tst_value_lname = "lname"
-        tst_value_age = "age"
+    @patch('library.patron.Patron')
+    def test_is_patron_registered_true(self, mock_Patron):
         tst_value_memberID = "memberID"
-        patron_instance = patron.Patron(tst_value_fname, tst_value_lname, tst_value_age, tst_value_memberID)
         self.lib.db.retrieve_patron = Mock(return_value=True)
         
-        result = self.lib.is_patron_registered(patron_instance)
+        mock_Patron.get_memberID.return_value = tst_value_memberID
+        result = self.lib.is_patron_registered(mock_Patron)
         
         self.lib.db.retrieve_patron.assert_called_once_with(tst_value_memberID)
         self.assertTrue(result)
         
-    def test_is_patron_registered_false(self):
-        tst_value_fname = "fname"
-        tst_value_lname = "lname"
-        tst_value_age = "age"
+    @patch('library.patron.Patron')
+    def test_is_patron_registered_false(self, mock_Patron):
         tst_value_memberID = "memberID"
-        patron_instance = patron.Patron(tst_value_fname, tst_value_lname, tst_value_age, tst_value_memberID)
         self.lib.db.retrieve_patron = Mock(return_value=False)
         
-        result = self.lib.is_patron_registered(patron_instance)
+        mock_Patron.get_memberID.return_value = tst_value_memberID
+        result = self.lib.is_patron_registered(mock_Patron)
         
         self.lib.db.retrieve_patron.assert_called_once_with(tst_value_memberID)
         self.assertFalse(result)
     
-    def test_borrow_book(self):
-        tst_value_fname = "fname"
-        tst_value_lname = "lname"
-        tst_value_age = "age"
-        tst_value_memberID = "memberID"
+    @patch('library.patron.Patron')
+    def test_borrow_book(self, mock_Patron):
         tst_value_book_name = "Way of Kings"
-        patron_instance1 = patron.Patron(tst_value_fname, tst_value_lname, tst_value_age, tst_value_memberID)
-        patron_instance2 = patron.Patron(tst_value_fname, tst_value_lname, tst_value_age, tst_value_memberID)
-        patron_instance2.add_borrowed_book(tst_value_book_name)
         self.lib.db.update_patron = Mock()
         
-        self.lib.borrow_book(tst_value_book_name, patron_instance1)
+        self.lib.borrow_book(tst_value_book_name, mock_Patron)
         
-        self.lib.db.update_patron.assert_called_once_with(patron_instance2)
+        mock_Patron.add_borrowed_book.assert_called_once_with("way of kings")
+        self.lib.db.update_patron.assert_called_once_with(mock_Patron)
     
-    def test_return_borrowed_book(self):
-        tst_value_fname = "fname"
-        tst_value_lname = "lname"
-        tst_value_age = "age"
-        tst_value_memberID = "memberID"
+    @patch('library.patron.Patron')
+    def test_return_borrowed_book(self, mock_Patron):
         tst_value_book_name = "Way of Kings"
-        patron_instance1 = patron.Patron(tst_value_fname, tst_value_lname, tst_value_age, tst_value_memberID)
-        patron_instance1.add_borrowed_book(tst_value_book_name)
-        patron_instance2 = patron.Patron(tst_value_fname, tst_value_lname, tst_value_age, tst_value_memberID)
+        mock_Patron.return_borrowed_book.return_value = tst_value_book_name
         self.lib.db.update_patron = Mock()
         
-        self.lib.return_borrowed_book(tst_value_book_name, patron_instance1)
+        self.lib.return_borrowed_book(tst_value_book_name, mock_Patron)
         
-        self.lib.db.update_patron.assert_called_once_with(patron_instance2)
+        mock_Patron.return_borrowed_book.assert_called_once_with("way of kings")
+        self.lib.db.update_patron.assert_called_once_with(mock_Patron)
     
-    @patch('library.patron.Patron.get_borrowed_books')
-    def test_is_book_borrowed_true(self, mock_get_borrowed_books):
-        tst_value_fname = "fname"
-        tst_value_lname = "lname"
-        tst_value_age = "age"
-        tst_value_memberID = "memberID"
+    @patch('library.patron.Patron')
+    def test_is_book_borrowed_true(self, mock_Patron):
         tst_value_book_name = "Way of Kings"
         tst_value_borrowed_books = ["way of kings"]
-        patron_instance = patron.Patron(tst_value_fname, tst_value_lname, tst_value_age, tst_value_memberID)
-        mock_get_borrowed_books.return_value = tst_value_borrowed_books
+        mock_Patron.get_borrowed_books.return_value = tst_value_borrowed_books
         
-        result = self.lib.is_book_borrowed(tst_value_book_name, patron_instance)
+        result = self.lib.is_book_borrowed(tst_value_book_name, mock_Patron)
         
-        mock_get_borrowed_books.assert_called_once()
+        mock_Patron.get_borrowed_books.assert_called_once()
         self.assertTrue(result)
     
-    @patch('library.patron.Patron.get_borrowed_books')
-    def test_is_book_borrowed_false(self, mock_get_borrowed_books):
-        tst_value_fname = "fname"
-        tst_value_lname = "lname"
-        tst_value_age = "age"
-        tst_value_memberID = "memberID"
+    @patch('library.patron.Patron')
+    def test_is_book_borrowed_false(self, mock_Patron):
         tst_value_book_name = "Way of Kings"
         tst_value_borrowed_books = []
-        patron_instance = patron.Patron(tst_value_fname, tst_value_lname, tst_value_age, tst_value_memberID)
-        mock_get_borrowed_books.return_value = tst_value_borrowed_books
+        mock_Patron.get_borrowed_books.return_value = tst_value_borrowed_books
         
-        result = self.lib.is_book_borrowed(tst_value_book_name, patron_instance)
+        result = self.lib.is_book_borrowed(tst_value_book_name, mock_Patron)
         
-        mock_get_borrowed_books.assert_called_once()
+        mock_Patron.get_borrowed_books.assert_called_once()
         self.assertFalse(result)
         
         
